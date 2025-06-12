@@ -2,8 +2,10 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"log"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -34,10 +36,11 @@ type Event struct {
 }
 
 type Args struct {
-	First       string `json:"first"`
+	First       string `json:"first,omitempty"`
 	Second      string `json:"second,omitempty"`
 	ReturnValue string `json:"returnValue,omitempty"`
 	DetachedDur int    `json:"detachedDur,omitempty"`
+	Name        string `json:"name,omitempty"`
 }
 
 func NewEvent(content string) *Event {
@@ -131,4 +134,37 @@ func convertTS(ts string) int {
 		log.Fatal(err)
 	}
 	return i
+}
+
+func GetProcessThreadsMetadata(pid int) ([]Event, error) {
+	threadsDir := fmt.Sprintf("/proc/%d/task", pid)
+	tids, err := ioutil.ReadDir(threadsDir)
+	if err != nil {
+		return nil, err
+	}
+
+	var events []Event
+	for _, tidEntry := range tids {
+		tidStr := tidEntry.Name()
+		tid, err := strconv.Atoi(tidStr)
+		if err != nil {
+			continue
+		}
+		commPath := filepath.Join(threadsDir, tidStr, "comm")
+		data, err := ioutil.ReadFile(commPath)
+		if err != nil {
+			continue
+		}
+		threadName := strings.TrimSpace(string(data))
+
+		event := Event{
+			Name: "thread_name",
+			Ph:   "M",
+			Pid:  pid,
+			Tid:  tid,
+		}
+		event.Args.Name = threadName
+		events = append(events, event)
+	}
+	return events, nil
 }

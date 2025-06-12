@@ -4,14 +4,33 @@ strace-perfetto runs strace and converts the raw output to a [Trace Event](https
 
 ![example](img/ui.perfetto.dev.png)
 
-### Install
+### Build & Install
+
+Download Souce code
+
 ```
-go install github.com/lbirchler/strace-perfetto@latest
+git clone https://github.com/zhaojunmin/strace-perfetto.git
 ```
 
-### Usage
+Cross-Compile For arm64
+
 ```
-Usage: strace-perfetto [OPTIONS] command
+env GOOS=android GOARCH=arm64 CC=/mnt/disk/home/android-ndk-r24-beta3/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android30-clang GOARM=7 CGO_ENABLED=1 go build
+```
+
+Install into phone device
+
+```PUPush 
+adb remount
+adb push strace-perfetto /system/bin
+```
+
+
+
+### Usage
+
+```
+Usage: strace-perfetto [OPTIONS] command/pid
   -e string
         only trace specified syscalls
   -o string
@@ -23,7 +42,7 @@ Usage: strace-perfetto [OPTIONS] command
 ### Examples
 #### Trace program/script/command
 ```
-$ strace-perfetto ./x.py
+$ strace-perfetto <pid>
 ```
 
 <details>
@@ -78,7 +97,7 @@ $ jq '.[-3:]' stracefile.json
 
 #### Trace specific syscalls
 ```
-$ strace-perfetto -e symlink,unlink,openat ./x.py 
+$ strace-perfetto -e symlink,unlink,openat <pid>
 ```
 <details> 
 <summary>JSON output</summary>
@@ -132,7 +151,7 @@ $ jq '.[-3:]' stracefile.json
 
 #### Kill trace after *n* seconds 
 ```
-$ strace-perfetto -t 2 ./x.py 
+$ strace-perfetto -t 2 <pid>
 ```
 
 **NOTE:** The *cat (category)* field for each event is used to represent the status of each syscall
